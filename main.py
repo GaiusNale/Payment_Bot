@@ -38,7 +38,7 @@ async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["method"] = update.message.text
 
-    # summarization of data to show the user
+    # Summarization of data to show the user
     await update.message.reply_text(
         f"Thank you for your application. Here is the summary of your application:\n"
         f"Name: {context.user_data['name']}\n"
