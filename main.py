@@ -9,6 +9,8 @@ from telegram.ext import (
 )
 from decouple import config
 import csv
+import os 
+
 
 # Defining the form states 
 NAME, EMAIL, AMOUNT, METHOD = range(4)
@@ -36,17 +38,46 @@ async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return METHOD
 
 async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Save the last response 
     context.user_data["method"] = update.message.text
 
-    # Summarization of data to show the user
-    await update.message.reply_text(
-        f"Thank you for your application. Here is the summary of your application:\n"
-        f"Name: {context.user_data['name']}\n"
-        f"Email: {context.user_data['email']}\n"
-        f"Amount: ₦{context.user_data['amount']}\n"
-        f"Method: {context.user_data['method']}\n"
-        "Use /form to fill the form again"
-    )
+    # Save the data to a csv file
+    file_path = "payment_data.csv"
+
+    # Prepare the user data 
+    user_data = {
+        "Name": context.user_data["name"],
+        "Email": context.user_data["email"],
+        "Amount": context.user_data["amount"],
+        "Method": context.user_data["method"],
+    }
+
+    # Write the data to the csv file
+
+    try: 
+        file_exists = os.path.isfile(file_path)
+
+        with open(file_path, "a", newline="", encoding="utf-8") as file:
+            writer = csv.DictWriter(file, fieldnames=user_data.keys())
+
+            # checks if the file exists and then writes the header if the file is empty
+            if not file_exists:
+                writer.writeheader()
+
+            writer.writerow(user_data)
+
+        # Summarization of data to show the user
+        await update.message.reply_text(
+            f"Thank you for your application. Here is the summary of your application:\n"
+            f"Name: {context.user_data['name']}\n"
+            f"Email: {context.user_data['email']}\n"
+            f"Amount: ₦{context.user_data['amount']}\n"
+            f"Method: {context.user_data['method']}\n"
+            "Use /cancel to cancel the process. Use /form to fill the form again"
+        )
+    except Exception as e:
+            await update.message.reply_text("An error occured while saving your data, Please try again.")
+            print(f"Error: {e}")
 
     return ConversationHandler.END
 
