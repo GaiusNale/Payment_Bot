@@ -13,7 +13,7 @@ import os
 
 
 # Defining the form states 
-NAME, EMAIL, AMOUNT, METHOD = range(4)
+NAME, EMAIL, AMOUNT, DETAILS = range(4)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello, Welcome to the payment bot!\n Please enter /form to begin the application process.')
@@ -34,12 +34,12 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["amount"] = update.message.text
-    await update.message.reply_text("Please enter the payment method")
-    return METHOD
+    await update.message.reply_text("Please enter your payment details")
+    return DETAILS
 
-async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def get_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Save the last response 
-    context.user_data["method"] = update.message.text
+    context.user_data["details"] = update.message.text
 
     # Save the data to a csv file
     file_path = "payment_data.csv"
@@ -49,7 +49,7 @@ async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Name": context.user_data["name"],
         "Email": context.user_data["email"],
         "Amount": context.user_data["amount"],
-        "Method": context.user_data["method"],
+        "Details": context.user_data["details"],
     }
 
     # Write the data to the csv file
@@ -72,7 +72,7 @@ async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Name: {context.user_data['name']}\n"
             f"Email: {context.user_data['email']}\n"
             f"Amount: ₦{context.user_data['amount']}\n"
-            f"Method: {context.user_data['method']}\n"
+            f"Details: {context.user_data['details']}\n"
             "Use /cancel to cancel the process. Use /form to fill the form again"
         )
     except Exception as e:
@@ -105,7 +105,7 @@ def main():
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
             AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_amount)],
-            METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_method)],
+            DETAILS: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_details)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
 )
