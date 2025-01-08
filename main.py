@@ -43,7 +43,7 @@ async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Please enter the payment method")
     return METHOD
 
-def send_email_via_outlook(file_path):
+def send_email_via_gmail(file_path):
     # Load environment variables
     sender_email = config("EMAIL_SENDER", default=None)
     sender_password = config("EMAIL_PASSWORD", default=None)
@@ -79,11 +79,10 @@ def send_email_via_outlook(file_path):
         print(f"Error attaching file: {e}")
         return False
 
-    # Send the email using Outlook SMTP
+    # Send the email using Gmail SMTP
     try:
-        with smtplib.SMTP("smtp.office365.com", 587) as server:
-            server.starttls()  # Start TLS encryption
-            server.login(sender_email, sender_password)  # Log in to the server
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:  # Use SMTP_SSL for port 465
+            server.login(sender_email, sender_password)  # Log in using App Password
             server.send_message(msg)  # Send the email
             print("Email sent successfully!")
             return True
@@ -130,7 +129,7 @@ async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         # Send the CSV file to the accountant
-        if send_email_via_outlook(file_path):
+        if send_email_via_gmail(file_path):
             await update.message.reply_text("Your application has been submitted successfully, and the accountant has been notified.")
         else:
             await update.message.reply_text("Your application was saved, but there was an error notifying the accountant. Please contact support.")
