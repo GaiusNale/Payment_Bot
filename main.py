@@ -19,7 +19,7 @@ import os
 
 
 # Defining the form states 
-NAME, EMAIL, AMOUNT, METHOD = range(4)
+NAME, EMAIL, AMOUNT, ACCOUNT_NUM, ACCOUNT_NAME, BANK_NAME = range(6)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello, Welcome to the payment bot!\n Please enter /form to begin the application process.')
@@ -40,8 +40,21 @@ async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["amount"] = update.message.text
-    await update.message.reply_text("Please enter the payment method")
-    return METHOD
+    await update.message.reply_text("Please enter account number")
+    return ACCOUNT_NUM
+
+async def get_account_num(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["accountnumber"] = update.message.text
+    await update.message.reply_text("Please enter your account name")
+    return ACCOUNT_NAME
+async def get_account_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["accountname"] = update.message.text
+    await update.message.reply_text("Please enter your bank name")
+    return BANK_NAME
+ 
+async def get_bank_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["bank_name"] = update.message.text
+    return await finish_form(update, context)
 
 def send_email_via_gmail(file_path):
     # Load environment variables
@@ -90,7 +103,7 @@ def send_email_via_gmail(file_path):
         print(f"Error sending email: {e}")
         return False
 
-async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def finish_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Save the last response
     context.user_data["method"] = update.message.text
 
@@ -102,7 +115,9 @@ async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Name": context.user_data["name"],
         "Email": context.user_data["email"],
         "Amount": context.user_data["amount"],
-        "Method": context.user_data["method"],
+        "Account Number": context.user_data["accountnumber"],
+        "Account Name": context.user_data["accountname"],
+        "Bank Name": context.user_data["bank_name"],
     }
 
     # Write the data to the CSV file
@@ -124,7 +139,9 @@ async def get_method(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"Name: {context.user_data['name']}\n"
             f"Email: {context.user_data['email']}\n"
             f"Amount: ₦{context.user_data['amount']}\n"
-            f"Method: {context.user_data['method']}\n"
+            f"Account Number: {context.user_data['accountnumber']}\n"
+            f"Account Name: {context.user_data['accountname']}\n"
+            f"Bank Name: {context.user_data['bank_name']}\n"
             "Use /cancel to cancel the process. Use /form to fill the form again."
         )
 
@@ -164,7 +181,9 @@ def main():
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
             AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_amount)],
-            METHOD: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_method)],
+            ACCOUNT_NUM: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_account_num)],
+            ACCOUNT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_account_name)],
+            BANK_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_bank_name)],
         },
         fallbacks=[CommandHandler('cancel', cancel)],
 )
