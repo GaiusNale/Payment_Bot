@@ -17,6 +17,7 @@ from email import encoders
 from decouple import config
 import os 
 import send_email
+import pandas as pd
 
 
 # Defining the form states 
@@ -69,8 +70,26 @@ async def get_bank_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     return CONFIRM
 
+import pandas as pd
+
+import pandas as pd
+
+def csv_to_excel(csv_file, excel_file):
+    try:
+        df = pd.read_csv(csv_file)
+        df.to_excel(excel_file, index=False)
+        print(f"Converted {csv_file} to {excel_file}")
+        return True
+    except FileNotFoundError:
+        print(f"Error: {csv_file} not found")
+        return False
+    except Exception as e:
+        print(f"Error: {e}")
+        return False
 async def finish_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # Save the last response
+    
+    
     user_reply = update.message.text.lower()
 
     if user_reply == "yes":
