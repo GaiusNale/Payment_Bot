@@ -21,7 +21,7 @@ import pandas as pd
 
 
 # Defining the form states 
-NAME, EMAIL, AMOUNT, ACCOUNT_NUM, ACCOUNT_NAME, BANK_NAME, CONFIRM = range(7)
+NAME, EMAIL, REASON, AMOUNT, ACCOUNT_NUM, ACCOUNT_NAME, BANK_NAME, CONFIRM = range(8)
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text('Hello, Welcome to the payment bot!\n Please enter /form to begin the application process.')
@@ -37,6 +37,11 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def get_email(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["email"] = update.message.text
+    await update.message.reply_text("Please enter your reason for payment")
+    return REASON
+
+async def get_reason(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["reason"] = update.message.text
     await update.message.reply_text("Please enter the payment amount")
     return AMOUNT
 
@@ -61,7 +66,8 @@ async def get_bank_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"Please confirm your application details:\n\n"
         f"Name: {context.user_data['name']}\n"
         f"Email: {context.user_data['email']}\n"        
-        f"Amount: {context.user_data['amount']}\n"
+        f"Reason: {context.user_data['reason']}\n"
+        f"Amount: ₦{context.user_data['amount']}\n"
         f"Account Number: {context.user_data['accountnumber']}\n"
         f"Account Name: {context.user_data['accountname']}\n"
         f"Bank Name: {context.user_data['bank_name']}\n\n"
@@ -69,8 +75,6 @@ async def get_bank_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     )
     return CONFIRM
-
-import pandas as pd
 
 import pandas as pd
 
@@ -86,20 +90,20 @@ def csv_to_excel(csv_file, excel_file):
     except Exception as e:
         print(f"Error: {e}")
         return False
+
 async def finish_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Save the last response
-    
-    
     user_reply = update.message.text.lower()
 
     if user_reply == "yes":
-        # Save the data to a CSV file
-        file_path = "payment_data.csv"
+        # File paths
+        csv_file_path = "payment_data.csv"
+        excel_file_path = "payment_data.xlsx"
 
         # Prepare the user data  
         user_data = {
             "Name": context.user_data["name"],
             "Email": context.user_data["email"],
+            "Reason": context.user_data["reason"],
             "Amount": context.user_data["amount"],
             "Account Number": context.user_data["accountnumber"],
             "Account Name": context.user_data["accountname"],
@@ -108,9 +112,9 @@ async def finish_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # Write the data to the CSV file
         try:
-            file_exists = os.path.isfile(file_path)
+            file_exists = os.path.isfile(csv_file_path)
 
-            with open(file_path, "a", newline="", encoding="utf-8") as file:
+            with open(csv_file_path, "a", newline="", encoding="utf-8") as file:
                 writer = csv.DictWriter(file, fieldnames=user_data.keys())
 
                 # Write header if the file is new
@@ -119,22 +123,21 @@ async def finish_form(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
                 writer.writerow(user_data)
 
-            # Summarize data to show the user and ask for confirmation
-            await update.message.reply_text(
-                f"Thank you for your application. Here is the summary of your application:\n\n"
-                f"**Name:** {context.user_data['name']}\n"
-                f"**Email**: {context.user_data['email']}\n"
-                f"**Amount**: ₦{context.user_data['amount']}\n"
-                f"**Account Number**: {context.user_data['accountnumber']}\n"
-                f"**Account Name**: {context.user_data['accountname']}\n"
-                f"**Bank Name**: {context.user_data['bank_name']}\n"
-            )
-
-        # Send the CSV file to the accountant
-            if send_email.send_email_via_gmail(file_path):
-                await update.message.reply_text("Your application has been submitted successfully, and the accountant has been notified.")
+            # Convert CSV to Excel
+            if csv_to_excel(csv_file_path, excel_file_path):
+                # Send the Excel file to the accountant
+                if send_email.send_email_via_gmail(excel_file_path):
+                    await update.message.reply_text(
+                        "Your application has been submitted successfully, and the accountant has been notified."
+                    )
+                else:
+                    await update.message.reply_text(
+                        "Your application was saved, but there was an error notifying the accountant. Please contact support."
+                    )
             else:
-                await update.message.reply_text("Your application was saved, but there was an error notifying the accountant. Please contact support.")
+                await update.message.reply_text(
+                    "Your application was saved, but there was an error generating the Excel file. Please contact support."
+                )
 
         except Exception as e:
             await update.message.reply_text("An error occurred while saving your data. Please try again.")
@@ -152,6 +155,16 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Application canceled. Use /form to fill the form again.")
     return ConversationHandler.END
 
+async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Welcome to the Payment Bot!\n\n"
+        "Here are the available commands:\n"
+        "/start - Start the bot and get a greeting message.\n"
+        "/form - Begin the payment application process.\n"
+        "/cancel - Cancel the current operation.\n"
+        "Feel free to use any of these commands to interact with the bot!"
+    )
+
 def main():
     # Get the token from your environment or .env file
     TOKEN = config("TOKEN", default=None)
@@ -164,6 +177,7 @@ def main():
 
     # Add command handlers
     application.add_handler(CommandHandler('start', start))
+    application.add_handler(CommandHandler('welcome', welcome))  # Add the welcome command
 
     # conversation handler for the form 
     conv_handler = ConversationHandler(
@@ -171,6 +185,7 @@ def main():
         states={
             NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_name)],
             EMAIL: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_email)],
+            REASON: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_reason)],
             AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_amount)],
             ACCOUNT_NUM: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_account_num)],
             ACCOUNT_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_account_name)],
